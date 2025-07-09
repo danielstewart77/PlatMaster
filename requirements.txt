@@ -5,8 +5,15 @@ scikit-learn
 openai
 requests
 python-dotenv
-#torch==1.10.0+cu113
-#torchvision==0.11.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-#git+https://github.com/facebookresearch/detectron2.git
+#pip install paddlepaddle-gpu==3.0.0 \
+#-i https://www.paddlepaddle.org.cn/packages/stable/cu118/
+#pip install paddleocr
+
+
 
 docling
+pdfplumber
+pillow
+
+paddleocr
+paddlepaddle-gpu
