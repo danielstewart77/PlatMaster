@@ -6,6 +6,7 @@ A sophisticated OCR and AI-powered document processing system for extracting str
 
 - **Advanced OCR Processing**: Uses PaddleOCR with GPU acceleration for high-accuracy text detection and recognition
 - **AI-Powered Data Extraction**: Leverages Azure OpenAI GPT models to extract structured data from OCR results
+- **Web API Interface**: FastAPI-based REST API for easy integration with other systems
 - **Multi-Format Support**: Processes PDF documents and converts them to images for analysis
 - **Visual Debugging**: Generates annotated images showing detected text regions with confidence scores
 - **Structured Output**: Extracts key drilling location data including coordinates, elevations, and survey points
@@ -47,6 +48,7 @@ AZURE_OPENAI_API_KEY_EAST2=your_east2_api_key_here
 
 ### Usage
 
+#### Batch Processing (Command Line)
 1. Place your PDF plat documents in the `plats/` directory
 2. Run the processing pipeline:
 ```bash
@@ -58,6 +60,29 @@ python main.py
    - `*_boxes.png`: Images with OCR bounding boxes overlaid
    - `*_ocr_merged.txt`: Raw OCR text output
    - `*.json`: Structured extracted data
+
+#### Web API Server
+1. Start the FastAPI server:
+```bash
+python server.py
+```
+
+2. The API will be available at `http://localhost:8000`
+   - Interactive documentation: `http://localhost:8000/docs`
+   - Health check: `http://localhost:8000/health`
+
+3. Upload a PDF file to the `/extract` endpoint:
+```bash
+curl -X POST "http://localhost:8000/extract" \
+     -H "accept: application/json" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file=@your_plat.pdf"
+```
+
+4. Or use the test script:
+```bash
+python test_api.py
+```
 
 ## 📊 Data Extraction
 
@@ -129,15 +154,18 @@ PlatMaster extracts the following structured data from plat documents:
 
 ```
 PlatMaster/
-├── main.py                 # Main processing pipeline
+├── main.py                 # Core processing pipeline and batch processing
+├── server.py               # FastAPI web server
+├── test_api.py            # API testing script
 ├── models/
 │   └── plat.py            # Pydantic data models
 ├── services/
 │   └── llm.py             # Azure OpenAI integration
 ├── plats/                 # Input PDF documents
-├── output/                # Generated results
+├── output/                # Generated results (batch processing)
 ├── requirements.txt       # Python dependencies
 ├── .env                   # Environment variables
+├── LICENSE                # GNU General Public License
 └── README.md             # This file
 ```
 
