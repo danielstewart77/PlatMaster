@@ -17,3 +17,8 @@ pillow
 
 paddleocr
 paddlepaddle-gpu
+fastapi
+uvicorn[standard]
+python-multipart
+uvicorn
+fastapi
