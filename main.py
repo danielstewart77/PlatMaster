@@ -1,3 +1,18 @@
+"""
+PlatMaster - OCR and AI-powered document processing for oil and gas well location plats.
+Copyright (C) 2025 Daniel Stewart
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+"""
+
 import cv2
 import numpy as np
 import os
@@ -111,42 +126,90 @@ def extract_plat_structured(text):
         print(f"[LLM Extraction Error]: {e}")
         return {}
 
-def main():
-    plats_dir = "plats"
-    output_dir = "output"
-    os.makedirs(output_dir, exist_ok=True)
-
-    for filename in os.listdir(plats_dir):
-        if not filename.lower().endswith(".pdf"):
-            continue
-        pdf_path = os.path.join(plats_dir, filename)
-        images = pdf_to_images(pdf_path)
-        base_name = os.path.splitext(filename)[0]
-
-        for idx, img_pil in enumerate(images):
+def extract_plat(pdf_path, output_dir=None, save_debug_files=False):
+    """
+    Extract structured data from a single PDF plat document.
+    
+    Args:
+        pdf_path (str): Path to the PDF file to process
+        output_dir (str, optional): Directory to save debug files. If None, creates temp directory.
+        save_debug_files (bool): Whether to save intermediate debug files
+        
+    Returns:
+        dict: Extracted structured data from the plat document
+    """
+    # Create output directory if saving debug files
+    if save_debug_files and output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    
+    # Convert PDF to images
+    images = pdf_to_images(pdf_path)
+    base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+    
+    # Process all pages and collect results
+    all_results = []
+    
+    for idx, img_pil in enumerate(images):
+        # Save input image if debug files requested
+        if save_debug_files and output_dir:
             img_save_path = os.path.join(output_dir, f"{base_name}_page{idx+1}_input.png")
             img_pil.save(img_save_path)
 
-            text_blocks, ocr_result = detect_and_ocr(img_pil)
+        # Perform OCR
+        text_blocks, ocr_result = detect_and_ocr(img_pil)
 
-            # Save image with bounding boxes for debugging
+        # Save image with bounding boxes for debugging if requested
+        if save_debug_files and output_dir:
             boxes_preview_path = os.path.join(output_dir, f"{base_name}_page{idx+1}_boxes.png")
             draw_ocr_boxes(img_pil, ocr_result, boxes_preview_path)
 
-            # Merge OCR results
-            all_text = merge_text_blocks(text_blocks)
+        # Merge OCR results
+        all_text = merge_text_blocks(text_blocks)
+        
+        # Save merged text if debug files requested
+        if save_debug_files and output_dir:
             merged_txt_path = os.path.join(output_dir, f"{base_name}_page{idx+1}_ocr_merged.txt")
             with open(merged_txt_path, "w") as f:
                 f.write(all_text)
 
-            print(f"[OCR Result for {filename} page {idx+1}]\n", all_text)
-            structured = extract_plat_structured(all_text)
-            print(f"[Extracted JSON for {filename} page {idx+1}]\n", structured.model_dump_json() if isinstance(structured, Plat) else structured)
+        print(f"[OCR Result for {base_name} page {idx+1}]\n", all_text)
+        
+        # Extract structured data
+        structured = extract_plat_structured(all_text)
+        print(f"[Extracted JSON for {base_name} page {idx+1}]\n", 
+              structured.model_dump_json() if isinstance(structured, Plat) else structured)
 
-            # Write output JSON
+        # Save JSON output if debug files requested
+        if save_debug_files and output_dir:
             output_file = os.path.join(output_dir, f"{base_name}_page{idx+1}.json")
             with open(output_file, "w") as f:
-                json.dump(structured.model_dump_json(), f, indent=2) if isinstance(structured, Plat) else f.write(str(structured))
+                if isinstance(structured, Plat):
+                    json.dump(structured.model_dump(), f, indent=2)
+                else:
+                    json.dump(structured, f, indent=2)
+        
+        # Add to results collection
+        if isinstance(structured, Plat):
+            all_results.append(structured.model_dump())
+        else:
+            all_results.append(structured)
+    
+    # Return the first page result (most common case) or all results if multiple pages
+    return all_results[0] if len(all_results) == 1 else {"pages": all_results}
+
+def main():
+    """Batch process all PDFs in the plats directory (legacy function)."""
+    plats_dir = "plats"
+    output_dir = "output"
+    
+    for filename in os.listdir(plats_dir):
+        if not filename.lower().endswith(".pdf"):
+            continue
+        pdf_path = os.path.join(plats_dir, filename)
+        print(f"Processing {filename}...")
+        result = extract_plat(pdf_path, output_dir, save_debug_files=True)
+        print(f"Completed processing {filename}")
+        print("=" * 50)
 
 if __name__ == "__main__":
     main()
